@@ -10,6 +10,7 @@
 #    odom           — nav_msgs/Odometry
 #    battery        — sensor_msgs/BatteryState  (note: NOT battery_state)
 #    is_runstopped  — std_msgs/Bool
+#    joint_states   - sensor_msgs/JointState
 # =============================================================================
 
 import math
@@ -19,7 +20,7 @@ import threading
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import BatteryState
+from sensor_msgs.msg import BatteryState, JointState
 from std_msgs.msg import Bool
 
 from fastapi import FastAPI
@@ -94,6 +95,7 @@ class RobotStateListener(Node):
         self.create_subscription(Odometry,    "odom",          self._odom_cb,       10)
         self.create_subscription(BatteryState,"battery",       self._battery_cb,    10)
         self.create_subscription(Bool,        "is_runstopped", self._runstop_cb,    10)
+        self.create_subscription(JointState,  "joint_states",  self._joint_states_cb, 10)
 
     def _odom_cb(self, msg: Odometry):
         q = msg.pose.pose.orientation
@@ -112,6 +114,38 @@ class RobotStateListener(Node):
         state.own_state["battery_percentage"] = estimate_battery_pct(voltage)
         state.own_state["last_updated"]       = now_iso()
 
+
+    def _joint_states_cb(self, msg: JointState):
+        names = list(msg.name)
+        positions = list(msg.position)
+        velocities = list(msg.velocity)
+        efforts = list(msg.effort)
+
+        joints = {}
+        for i, joint_name in enumerate(names):
+            joints[joint_name] = {
+                "position": positions[i] if i < len(positions) else None,
+                "velocity": velocities[i] if i < len(velocities) else None,
+                "effort": efforts[i] if i < len(efforts) else None,
+            }
+
+        stamp = msg.header.stamp
+        header_stamp = None
+        if stamp.sec != 0 or stamp.nanosec != 0:
+            header_stamp = datetime.fromtimestamp(
+                stamp.sec + (stamp.nanosec / 1_000_000_000.0),
+                tz=timezone.utc,
+            ).isoformat()
+
+        state.own_state["joint_state"] = {
+            "name": names,
+            "position": positions,
+            "velocity": velocities,
+            "effort": efforts,
+            "header_stamp": header_stamp,
+        }
+        state.own_state["joints"] = joints
+        state.own_state["last_updated"] = now_iso()
     def _runstop_cb(self, msg: Bool):
         state.own_state["is_runstopped"] = msg.data
         state.own_state["last_updated"]  = now_iso()

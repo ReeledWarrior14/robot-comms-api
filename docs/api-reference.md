@@ -30,7 +30,7 @@ Returns the complete current state of this robot.
 }
 ```
 
-**Response — Stretch Hello Robot 3**
+**Response � Stretch Hello Robot 3**
 
 ```jsonc
 {
@@ -43,6 +43,17 @@ Returns the complete current state of this robot.
   "battery_current":    -1.23,        // amps; negative = charging
   "battery_percentage": 72.2,         // estimated from voltage (see config.BATTERY_V_MIN/MAX)
   "is_runstopped":      false,        // true if e-stop / runstop engaged
+  "joint_state": {
+    "name":          ["joint_lift", "joint_arm_l0"],
+    "position":      [0.62, 0.11],
+    "velocity":      [0.0, 0.0],
+    "effort":        [0.08, 0.03],
+    "header_stamp":  "2026-03-08T14:23:01.123456+00:00"
+  },
+  "joints": {
+    "joint_lift":   {"position": 0.62, "velocity": 0.0, "effort": 0.08},
+    "joint_arm_l0": {"position": 0.11, "velocity": 0.0, "effort": 0.03}
+  },
   "last_updated":       "2026-03-08T14:23:01.456789+00:00",
   "heartbeat_ts":       1741441381.2
 }
@@ -64,7 +75,8 @@ Returns the complete current state of this robot.
 | `battery_voltage` | float \| null | Stretch only | Raw voltage in volts. |
 | `battery_current` | float \| null | Stretch only | Raw current in amps. Positive = discharging, negative = charging. |
 | `is_runstopped` | bool \| null | Stretch only | `true` when e-stop or runstop button is engaged (motors disabled). |
-
+| `joint_state` | object | Stretch only | Raw latest `JointState` payload: `name`, `position`, `velocity`, `effort`, and ISO `header_stamp` (or null). |
+| `joints` | object | Stretch only | Keyed map from joint name to `{position, velocity, effort}`; missing velocity/effort values are `null`. |
 **Battery percentage methods by robot type:**
 - **TurtleBot4:** `BatteryState.percentage × 100` (reported directly by the hardware).
 - **Stretch 3:** Estimated linearly from voltage: `(V − V_min) / (V_max − V_min) × 100`, clamped 0–100. Defaults: `V_min = 11.8 V`, `V_max = 12.7 V`. Adjustable in `config.py`.
@@ -308,3 +320,4 @@ else:
 ```
 
 This is exactly what the built-in polling loop does internally.
+

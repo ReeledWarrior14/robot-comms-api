@@ -16,7 +16,7 @@ Own robot state.
 }
 ```
 TB4 adds: `"is_docked": false`
-Stretch adds: `"battery_voltage": 12.45, "battery_current": -1.23, "is_runstopped": false`
+Stretch adds: `"battery_voltage": 12.45, "battery_current": -1.23, "is_runstopped": false, "joint_state": {...}, "joints": {...}`
 All fields nullable (null = topic not yet received). `heartbeat_ts` = Unix float, process-alive ticker independent of ROS — do NOT compare across machines (clock skew).
 
 ### GET /peers
@@ -58,6 +58,8 @@ Liveness ping. Returns immediately.
 | `battery_voltage` | float\|null | Stretch | Volts raw |
 | `battery_current` | float\|null | Stretch | Amps; positive=discharging |
 | `is_runstopped` | bool\|null | Stretch | True if e-stop engaged |
+| `joint_state` | object\|null | Stretch | Raw latest JointState arrays (`name`, `position`, `velocity`, `effort`) plus `header_stamp` |
+| `joints` | object | Stretch | Joint lookup map: `{joint_name: {position, velocity, effort}}` |
 
 ## Liveness Pattern (recommended)
 Track elapsed time since last successful poll using local monotonic clock. Do NOT use `heartbeat_ts` for cross-machine liveness.
@@ -92,3 +94,4 @@ peers = requests.get("http://10.40.118.220:8000/peers", timeout=1.0).json()
 - No auth. HTTP only. No non-200 status codes under normal operation (errors returned as JSON with `"error"` key).
 - `/heartbeat` is not called by the internal polling loop — it exists for external tooling only.
 - Concurrent multi-robot polling: use `ThreadPoolExecutor` or `asyncio`+`httpx`; robots respond independently.
+
