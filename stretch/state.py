@@ -1,5 +1,5 @@
 # =============================================================================
-#  state.py  —  Shared mutable state for Stretch comms node
+#  state.py  - Shared mutable state for Stretch comms node
 #  Imported by server.py, client.py, dashboard.py, and main.py.
 # =============================================================================
 
@@ -9,7 +9,7 @@ from datetime import datetime
 
 import config
 
-# ── Own robot state (written by server.py, read by API and dashboard) ─────────
+# Own robot state (written by server.py, read by API and dashboard)
 own_state: dict = {
     "robot_id":           config.ROBOT_ID,
     "namespace":          config.NAMESPACE or "(none)",
@@ -20,20 +20,28 @@ own_state: dict = {
     "battery_current":    None,   # amps; positive = discharging
     "battery_percentage": None,   # estimated from voltage (lead-acid linear map)
     "is_runstopped":      None,   # True = e-stop / runstop engaged
-    "last_updated":       None,   # ISO 8601 timestamp
-    "heartbeat_ts":       None,   # Unix float, ticked by client heartbeat thread
+    "joint_state": {               # raw JointState payload snapshot
+        "name": [],
+        "position": [],
+        "velocity": [],
+        "effort": [],
+        "header_stamp": None,      # ISO 8601 UTC from msg.header.stamp
+    },
+    "joints":             {},      # joint_name -> {position, velocity, effort}
+    "last_updated":       None,    # ISO 8601 timestamp
+    "heartbeat_ts":       None,    # Unix float, ticked by client heartbeat thread
 }
 
-# ── Peer state (written by client.py, read by API and dashboard) ──────────────
+# Peer state (written by client.py, read by API and dashboard)
 # robot_id -> { "state": {...}, "last_seen": float (monotonic) }
 peers: dict[str, dict] = {}
 peers_lock = threading.Lock()
 
-# robot_id -> url  (merged from mDNS discovery + STATIC_PEERS)
+# robot_id -> url (merged from mDNS discovery + STATIC_PEERS)
 peer_urls: dict[str, str] = dict(config.STATIC_PEERS)
 peer_urls_lock = threading.Lock()
 
-# ── Rolling log buffer (written by log(), read by dashboard) ──────────────────
+# Rolling log buffer (written by log(), read by dashboard)
 _log_buffer: deque[str] = deque(maxlen=12)
 _log_lock = threading.Lock()
 

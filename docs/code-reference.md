@@ -49,6 +49,8 @@ Written by `server.py` (ROS callbacks), read by the FastAPI endpoints and the da
 | `battery_voltage` | `_battery_cb` | **Stretch only.** Raw volts. |
 | `battery_current` | `_battery_cb` | **Stretch only.** Raw amps; positive = discharging. |
 | `is_runstopped` | `_runstop_cb` | **Stretch only.** `True` if e-stop engaged. |
+| `joint_state` | `_joint_states_cb` | **Stretch only.** Raw latest `JointState` arrays (`name`, `position`, `velocity`, `effort`) and `header_stamp`. |
+| `joints` | `_joint_states_cb` | **Stretch only.** Keyed per-joint lookup map with `position`, `velocity`, `effort`. |
 | `last_updated` | all callbacks | ISO 8601 UTC string, updated on every ROS callback. |
 | `heartbeat_ts` | `_heartbeat_ticker` | Unix float (`time.time()`). Updated every `POLL_INTERVAL` regardless of ROS activity. Used as a process-alive indicator. |
 
@@ -106,7 +108,7 @@ All endpoints are synchronous FastAPI route functions. They run in uvicorn's thr
 
 A `rclpy.node.Node` subclass. Created once in `start_ros2()` and spun in a daemon thread.
 
-**`__init__`** — Calls `super().__init__("comms_server", namespace=config.NAMESPACE or None)` then creates three subscriptions. The node name `"comms_server"` is what appears in `ros2 node list`. Passing `namespace` here makes all relative topic names resolve under it — e.g. `"odom"` becomes `/robot1/odom` when `NAMESPACE="/robot1"`.
+**`__init__`** — Calls `super().__init__("comms_server", namespace=config.NAMESPACE or None)` then creates subscriptions for `odom`, `battery`, `is_runstopped`, and (Stretch only) `joint_states`. The node name `"comms_server"` is what appears in `ros2 node list`. Passing `namespace` here makes all relative topic names resolve under it — e.g. `"odom"` becomes `/robot1/odom` when `NAMESPACE="/robot1"`.
 
 **`_odom_cb(msg: Odometry)`** — Extracts `x`, `y` from `msg.pose.pose.position` and computes yaw from the quaternion using the standard formula:
 
@@ -118,7 +120,9 @@ yaw = atan2(2(wz + xy), 1 - 2(y² + z²))
 
 **`_battery_cb(msg: BatteryState)`** — TB4: `msg.percentage` is 0.0–1.0, multiplied by 100. Stretch: `msg.percentage` is NaN; `battery_percentage` is estimated from `msg.voltage` using `estimate_battery_pct()`.
 
-**`_runstop_cb(msg: Bool)`** — Stretch only. Reads `msg.data`.
+**`_joint_states_cb(msg: JointState)`** - Stretch only. Copies raw `name`, `position`, `velocity`, and `effort` arrays into `own_state["joint_state"]`, converts `msg.header.stamp` to ISO UTC as `header_stamp` when non-zero, and also builds `own_state["joints"]` keyed by joint name for direct lookup. Missing velocity/effort entries are stored as `None`.
+
+**`_runstop_cb(msg: Bool)`** - Stretch only. Reads `msg.data`.
 
 ### `advertise_self() -> Zeroconf`
 
@@ -244,3 +248,5 @@ The monitor's modules follow the same structure but with these differences:
 | `dashboard.py` | Single flat table (no own-robot panel, no log panel). Includes a `Namespace` column. The `Docked` column gracefully shows `N/A` for Stretch robots that don't publish `is_docked`. |
 | `server.py` | **Does not exist.** The monitor has no HTTP server and does not advertise via mDNS. |
 | `main.py` | No port-in-use check (no server to conflict with). No ROS2 initialisation. |
+
+

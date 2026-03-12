@@ -259,7 +259,8 @@ Stretch additional fields:
 | `battery_voltage` | float \| null | Raw voltage (V) |
 | `battery_current` | float \| null | Raw current (A); positive = discharging |
 | `is_runstopped` | bool \| null | True if e-stop / runstop is engaged |
-
+| `joint_state` | object | Raw `sensor_msgs/JointState` snapshot (`name`, `position`, `velocity`, `effort`, `header_stamp`) |
+| `joints` | object | Per-joint lookup map: `{joint_name: {position, velocity, effort}}` |
 ---
 
 ## How Liveness Works
@@ -321,3 +322,5 @@ Every poll cycle, if a peer responds to `/state`, the robot also fetches that pe
 | `client.py` | mDNS discovery + concurrent peer polling + heartbeat ticker |
 | `dashboard.py` | Rich terminal UI — panels, tables, formatters |
 | `main.py` | Wires all modules together, handles shutdown |
+
+
