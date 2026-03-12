@@ -12,6 +12,7 @@ Own robot state.
   "x": 1.234, "y": -0.567, "heading": 0.312,
   "battery_percentage": 87.3,
   "last_updated": "2026-03-08T14:23:01.456789+00:00",
+  "last_api_query": "2026-03-08T14:23:03.000000+00:00",
   "heartbeat_ts": 1741441381.2
 }
 ```
@@ -53,6 +54,7 @@ Liveness ping. Returns immediately.
 | `heading` | float\|null | all | Yaw radians −π to π |
 | `battery_percentage` | float\|null | all | 0–100. TB4: from hardware. Stretch: estimated from voltage |
 | `last_updated` | ISO8601\|null | all | UTC, last ROS callback |
+| `last_api_query` | ISO8601\|null | all | UTC, last inbound request to the operational HTTP API |
 | `heartbeat_ts` | float\|null | all | `time.time()` on robot, do not diff cross-machine |
 | `is_docked` | bool\|null | TB4 | True if on dock |
 | `battery_voltage` | float\|null | Stretch | Volts raw |
@@ -93,5 +95,6 @@ peers = requests.get("http://10.40.118.220:8000/peers", timeout=1.0).json()
 ## Notes
 - No auth. HTTP only. No non-200 status codes under normal operation (errors returned as JSON with `"error"` key).
 - `/heartbeat` is not called by the internal polling loop — it exists for external tooling only.
+- `/docs`, `/redoc`, and `/openapi.json` do not update `last_api_query`; only the operational API endpoints do.
 - Concurrent multi-robot polling: use `ThreadPoolExecutor` or `asyncio`+`httpx`; robots respond independently.
 

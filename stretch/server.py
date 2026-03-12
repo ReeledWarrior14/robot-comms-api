@@ -23,7 +23,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import BatteryState, JointState
 from std_msgs.msg import Bool
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from zeroconf import ServiceInfo, Zeroconf
 import uvicorn
 from datetime import datetime, timezone
@@ -47,6 +47,16 @@ def estimate_battery_pct(voltage: float) -> float:
 # ── FastAPI app ───────────────────────────────────────────────────────────────
 
 app = FastAPI()
+
+_TRACKED_API_PATHS = {"/state", "/peers", "/peer_urls", "/heartbeat"}
+
+
+@app.middleware("http")
+async def track_last_api_query(request: Request, call_next):
+    path = request.url.path
+    if path in _TRACKED_API_PATHS or path.startswith("/peers/"):
+        state.own_state["last_api_query"] = now_iso()
+    return await call_next(request)
 
 
 @app.get("/state")

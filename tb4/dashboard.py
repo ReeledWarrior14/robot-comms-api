@@ -88,7 +88,8 @@ def build_own_panel() -> Panel:
     tbl.add_row("Heading",     fmt_float(s.get("heading")))
     tbl.add_row("Docked",      fmt_bool(s.get("is_docked"), "Docked", "Free"))
     tbl.add_row("Battery",     fmt_battery(s.get("battery_percentage")))
-    tbl.add_row("Last Updated",fmt_timestamp(s.get("last_updated")))
+    tbl.add_row("Last ROS Callback", fmt_timestamp(s.get("last_updated")))
+    tbl.add_row("Last API Query", fmt_timestamp(s.get("last_api_query")))
     hb = s.get("heartbeat_ts")
     tbl.add_row("Heartbeat TS", f"[green]{hb:.3f}[/green]" if hb else "[dim]N/A[/dim]")
     return Panel(tbl, title="[bold green]● This Robot (TB4)[/bold green]", border_style="green")
@@ -105,7 +106,7 @@ def build_peers_table() -> Table:
     tbl.add_column("Heading",     min_width=8)
     tbl.add_column("Docked",      min_width=8)
     tbl.add_column("Battery",     min_width=9)
-    tbl.add_column("Last Update", min_width=12)
+    tbl.add_column("Last ROS Callback", min_width=17)
 
     with state.peer_urls_lock:
         all_ids = set(state.peer_urls.keys())
