@@ -1,6 +1,8 @@
 # Robot Fleet Communication System
 
-Distributed inter-robot communication for a mixed **TurtleBot4** and **Stretch Hello Robot 3** fleet running ROS2. No central coordinator — each robot runs its own HTTP API, discovers peers via mDNS and/or static IPs, and polls peer state concurrently. A separate monitor script runs on any device (no ROS2 needed).
+Developed by Anay Nagar for the Ambulante Lab at Cal Poly SLO
+
+Distributed inter-robot communication for a mixed **TurtleBot4** and **Stretch Hello Robot 3** fleet running ROS2. A fully distributed system where each robot runs its own HTTP API, discovers peers via mDNS and/or static IPs, and polls peer state concurrently. A separate monitor script can run on any device to visualize all peers (no ROS2 needed).
 
 ---
 
