@@ -67,8 +67,6 @@ def poll_robots():
     """
     with ThreadPoolExecutor(max_workers=32) as pool:
         while True:
-            now = time.monotonic()
-
             with state.robot_urls_lock:
                 snapshot = dict(state.robot_urls)
 
@@ -85,13 +83,13 @@ def poll_robots():
                     if state_data is not None:
                         state.robots[robot_id] = {
                             "state":     state_data,
-                            "last_seen": now,
+                            "last_seen": time.monotonic(),
                             "reachable": True,
                             "url":       url,
                         }
                     else:
                         if robot_id in state.robots:
-                            elapsed = now - state.robots[robot_id]["last_seen"]
+                            elapsed = time.monotonic() - state.robots[robot_id]["last_seen"]
                             state.robots[robot_id]["reachable"] = False
                             if elapsed > config.HEARTBEAT_TTL:
                                 state.robots[robot_id]["state"] = {}

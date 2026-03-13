@@ -98,8 +98,6 @@ def poll_peers():
     """
     with ThreadPoolExecutor(max_workers=16) as pool:
         while True:
-            now = time.monotonic()
-
             with state.peer_urls_lock:
                 snapshot = dict(state.peer_urls)
 
@@ -126,10 +124,10 @@ def poll_peers():
                     if state_data is not None:
                         state.peers[robot_id] = {
                             "state":     state_data,
-                            "last_seen": now,
+                            "last_seen": time.monotonic(),
                         }
                     elif robot_id in state.peers:
-                        elapsed = now - state.peers[robot_id]["last_seen"]
+                        elapsed = time.monotonic() - state.peers[robot_id]["last_seen"]
                         if elapsed > config.HEARTBEAT_TTL:
                             state.log(
                                 f"[red][heartbeat][/red] [bold]{robot_id}[/bold] "
