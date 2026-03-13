@@ -4,6 +4,7 @@
 #  Responsibilities:
 #    - Discover peers via mDNS (_robot._tcp.local.)
 #    - Poll /state from all known peers concurrently
+#    - Exchange /peer_urls with peers on a separate optional interval
 #    - Maintain the peers and peer_urls dicts in state.py
 #    - Tick heartbeat_ts in own_state every POLL_INTERVAL seconds
 # =============================================================================
@@ -63,38 +64,48 @@ def start_heartbeat_ticker():
 
 # ── Peer polling ──────────────────────────────────────────────────────────────
 
-def _poll_one(robot_id: str, url: str) -> tuple[str, dict | None, dict[str, str]]:
-    """
-    Fetch /state from one peer. If reachable, also fetches /peer_urls for
-    peer-exchange discovery (so robots can find each other through a mutual peer).
-    Returns (robot_id, state_data_or_None, remote_peer_urls_or_empty).
-    """
-    state_data: dict | None = None
-    remote_urls: dict[str, str] = {}
+def _poll_one(robot_id: str, url: str) -> tuple[str, dict | None]:
+    """Fetch /state from one peer and return (robot_id, state_data_or_None)."""
     try:
         resp = requests.get(f"{url}/state", timeout=1.0)
         if resp.status_code == 200:
-            state_data = resp.json()
+            return robot_id, resp.json()
     except Exception:
         pass
-    if state_data is not None:
-        try:
-            resp2 = requests.get(f"{url}/peer_urls", timeout=1.0)
-            if resp2.status_code == 200:
-                remote_urls = resp2.json()
-        except Exception:
-            pass
-    return robot_id, state_data, remote_urls
+    return robot_id, None
+
+
+def _fetch_peer_urls(robot_id: str, url: str) -> tuple[str, dict[str, str]]:
+    """Fetch /peer_urls from one peer and return discovered URLs, if any."""
+    try:
+        resp = requests.get(f"{url}/peer_urls", timeout=1.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, dict):
+                return robot_id, data
+    except Exception:
+        pass
+    return robot_id, {}
+
+
+def _merge_remote_peer_urls(source_robot_id: str, remote_urls: dict[str, str]) -> None:
+    """Add newly discovered peers from a remote /peer_urls response."""
+    if not remote_urls:
+        return
+    with state.peer_urls_lock:
+        for known_id, known_url in remote_urls.items():
+            if known_id != config.ROBOT_ID and known_id not in state.peer_urls:
+                state.peer_urls[known_id] = known_url
+                state.log(
+                    f"[cyan][exchange][/cyan] Discovered [bold]{known_id}[/bold] "
+                    f"via {source_robot_id} at {known_url}"
+                )
 
 
 def poll_peers():
     """
-    Main polling loop. Fetches /state (and /peer_urls for discovery exchange)
-    from all known peers concurrently every POLL_INTERVAL seconds.
-
-    Peer exchange: if peer A knows about peer C that we don't, we add C to our
-    peer_urls automatically. This ensures all robots find each other even when
-    mDNS multicast doesn't reach every pair directly.
+    Main polling loop. Fetches /state from all known peers concurrently every
+    POLL_INTERVAL seconds.
     """
     with ThreadPoolExecutor(max_workers=16) as pool:
         while True:
@@ -107,18 +118,7 @@ def poll_peers():
             }
 
             for future in as_completed(futures):
-                robot_id, state_data, remote_urls = future.result()
-
-                # Peer exchange: register any robots our peer knows that we don't
-                if remote_urls:
-                    with state.peer_urls_lock:
-                        for known_id, known_url in remote_urls.items():
-                            if known_id != config.ROBOT_ID and known_id not in state.peer_urls:
-                                state.peer_urls[known_id] = known_url
-                                state.log(
-                                    f"[cyan][exchange][/cyan] Discovered [bold]{known_id}[/bold] "
-                                    f"via {robot_id} at {known_url}"
-                                )
+                robot_id, state_data = future.result()
 
                 with state.peers_lock:
                     if state_data is not None:
@@ -138,5 +138,39 @@ def poll_peers():
             time.sleep(config.POLL_INTERVAL)
 
 
+def exchange_peer_urls():
+    """
+    Background peer exchange loop. Fetches /peer_urls from peers on a separate
+    interval so discovery traffic cannot delay state freshness tracking.
+    """
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        while True:
+            with state.peer_urls_lock:
+                known_urls = dict(state.peer_urls)
+            with state.peers_lock:
+                reachable_ids = set(state.peers.keys())
+
+            exchange_targets = {
+                robot_id: url
+                for robot_id, url in known_urls.items()
+                if robot_id in reachable_ids
+            }
+
+            futures = {
+                pool.submit(_fetch_peer_urls, rid, url): rid
+                for rid, url in exchange_targets.items()
+            }
+
+            for future in as_completed(futures):
+                robot_id, remote_urls = future.result()
+                _merge_remote_peer_urls(robot_id, remote_urls)
+
+            time.sleep(config.PEER_EXCHANGE_INTERVAL)
+
+
 def start_polling():
     threading.Thread(target=poll_peers, daemon=True).start()
+
+
+def start_peer_exchange():
+    threading.Thread(target=exchange_peer_urls, daemon=True).start()

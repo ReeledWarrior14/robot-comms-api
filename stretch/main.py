@@ -56,6 +56,14 @@ def main():
 
     client.start_heartbeat_ticker()
     client.start_polling()
+    if config.PEER_EXCHANGE_ENABLED:
+        state.log(
+            f"[cyan][exchange][/cyan] Enabled peer exchange every "
+            f"{config.PEER_EXCHANGE_INTERVAL:.1f}s"
+        )
+        client.start_peer_exchange()
+    else:
+        state.log("[dim][exchange][/dim] Peer exchange disabled")
 
     api_server = server.start_api_server()
 

@@ -59,6 +59,14 @@ def main():
 
     # Peer polling — concurrent /state fetches from all known peers
     client.start_polling()
+    if config.PEER_EXCHANGE_ENABLED:
+        state.log(
+            f"[cyan][exchange][/cyan] Enabled peer exchange every "
+            f"{config.PEER_EXCHANGE_INTERVAL:.1f}s"
+        )
+        client.start_peer_exchange()
+    else:
+        state.log("[dim][exchange][/dim] Peer exchange disabled")
 
     # HTTP API — serves /state, /peers, /heartbeat
     api_server = server.start_api_server()
