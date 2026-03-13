@@ -17,6 +17,8 @@ The only file that should be edited between deployments. All other modules impor
 | `PORT` | `int` | TCP port uvicorn binds to. All robots in the fleet can share the same port number since they run on different machines. |
 | `POLL_INTERVAL` | `float` | Seconds between peer poll cycles. Lower values give more responsive status at the cost of more network traffic. Default `0.5`. |
 | `HEARTBEAT_TTL` | `float` | Seconds of missed polls before a peer is removed from `state.peers`. Default `5.0`. With `POLL_INTERVAL=0.5` this allows 10 consecutive misses before removal. |
+| `PEER_EXCHANGE_ENABLED` | `bool` | Enables or disables background `/peer_urls` exchange for transitive discovery. Default `True`. |
+| `PEER_EXCHANGE_INTERVAL` | `float` | Seconds between peer exchange cycles when enabled. Default `5.0`. |
 | `STATIC_PEERS` | `dict[str, str]` | `{ robot_id: "http://ip:port" }`. Populated into `state.peer_urls` at process start before mDNS or peer exchange runs. |
 
 **Stretch-only:**
@@ -159,21 +161,29 @@ Creates a `Zeroconf` instance and a `ServiceBrowser` watching `_robot._tcp.local
 
 A simple infinite loop that sets `state.own_state["heartbeat_ts"] = time.time()` every `POLL_INTERVAL` seconds. Runs in a daemon thread. Its purpose is to serve as a process-alive signal that is independent of ROS — if ROS topics go silent, `heartbeat_ts` keeps ticking, and `last_updated` does not.
 
-### `_poll_one(robot_id, url) -> (robot_id, state_data | None, peer_urls | {})`
+### `_poll_one(robot_id, url) -> (robot_id, state_data | None)`
 
-Performs two sequential HTTP GET requests to a single peer:
-1. `GET /state` — the peer's own state. If this fails, returns `(robot_id, None, {})` immediately.
-2. `GET /peer_urls` — the peer's known peer URLs, only attempted if `/state` succeeded.
+Fetches `GET /state` from a single peer. Uses `timeout=1.0` second. Designed to be submitted to a `ThreadPoolExecutor`, so it blocks but runs concurrently with other peers.
 
-Both calls use a `timeout=1.0` second. The function is designed to be submitted to a `ThreadPoolExecutor` — it blocks but runs concurrently with other peers.
+### `_fetch_peer_urls(robot_id, url) -> (robot_id, peer_urls | {})`
+
+Fetches `GET /peer_urls` from a single peer. Used by the separate peer-exchange loop rather than the main state-poll loop.
+
+### `_merge_remote_peer_urls(source_robot_id, remote_urls)`
+
+Adds newly-discovered URLs from a remote `/peer_urls` response into `state.peer_urls`, skipping the local robot's own ID and any already-known peers.
 
 ### `poll_peers()`
 
 The main polling loop. Uses a persistent `ThreadPoolExecutor(max_workers=16)` (not recreated each cycle) to dispatch `_poll_one` calls for all currently-known peers concurrently. `as_completed()` processes results as they arrive rather than waiting for all to finish.
 
-After collecting results it processes peer exchange first (adds newly-discovered peer URLs to `state.peer_urls`), then updates `state.peers`. Sleeps `POLL_INTERVAL` at the end of each cycle. The effective cycle time is approximately `max(individual_peer_latency) + POLL_INTERVAL`, not `sum(all_peer_latencies)`.
+It updates `state.peers` immediately based on `/state` responses, then sleeps `POLL_INTERVAL` at the end of each cycle. The effective cycle time is approximately `max(individual_peer_latency) + POLL_INTERVAL`, not `sum(all_peer_latencies)`.
 
-### `start_heartbeat_ticker()` / `start_polling()`
+### `exchange_peer_urls()`
+
+Optional background discovery loop. Uses its own `ThreadPoolExecutor(max_workers=16)` to fetch `/peer_urls` from peers that are currently reachable, merges any newly-discovered URLs into `state.peer_urls`, then sleeps `PEER_EXCHANGE_INTERVAL` before the next cycle.
+
+### `start_heartbeat_ticker()` / `start_polling()` / `start_peer_exchange()`
 
 Thin wrapper functions that launch the respective functions in daemon threads. Used by `main.py` to start background work in a consistent way.
 

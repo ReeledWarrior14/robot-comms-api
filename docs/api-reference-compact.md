@@ -37,6 +37,7 @@ All known peer URLs (from static config + mDNS + peer exchange). Includes undisc
 ```json
 { "robot2": "http://10.40.108.86:8000", "stretch1": "http://10.40.98.25:8000" }
 ```
+If peer exchange is disabled in `config.py`, robots will no longer query this automatically, but it remains useful for debugging discovery.
 
 ### GET /heartbeat
 Liveness ping. Returns immediately.

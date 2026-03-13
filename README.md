@@ -81,6 +81,8 @@ sudo apt install ros-<distro>-nav2-msgs   # provides nav_msgs
 | `PORT` | HTTP API port (default `8000`) |
 | `POLL_INTERVAL` | Seconds between peer state polls (default `0.5`) |
 | `HEARTBEAT_TTL` | Seconds before a peer is considered dead (default `5.0`) |
+| `PEER_EXCHANGE_ENABLED` | Enable or disable background `/peer_urls` exchange (default `True`) |
+| `PEER_EXCHANGE_INTERVAL` | Seconds between peer exchange cycles (default `5.0`) |
 | `STATIC_PEERS` | Dict of known peer IPs, e.g. `{"robot2": "http://10.0.0.2:8000"}` |
 
 ### `stretch/config.py`
@@ -110,7 +112,7 @@ Same as TB4 config, plus:
 
 ### Everything at once (recommended for development)
 
-Starts ROS2 listener, HTTP API, mDNS, peer polling, and the live dashboard in one command.
+Starts ROS2 listener, HTTP API, mDNS, peer polling, optional peer exchange, and the live dashboard in one command.
 
 ```bash
 # TurtleBot4
@@ -284,7 +286,9 @@ Peer status is derived from **`elapsed`** — the time since the last successful
 
 mDNS multicast is not guaranteed to reach every robot pair on WiFi networks (AP isolation, multicast filtering, different broadcast domains). To handle this, robots also do **peer exchange**:
 
-Every poll cycle, if a peer responds to `/state`, the robot also fetches that peer's `/peer_urls`. Any robots the peer knows about that are not yet known locally are added automatically. This means if robot1 knows about both robot2 and stretch, robot2 will discover stretch (and vice versa) within one poll cycle — without needing to add them to `STATIC_PEERS` or relying on mDNS.
+When `PEER_EXCHANGE_ENABLED` is `True`, each robot runs a separate background peer-exchange loop that fetches `/peer_urls` every `PEER_EXCHANGE_INTERVAL` seconds from peers it is already reaching successfully. Any robots the peer knows about that are not yet known locally are added automatically. This means if robot1 knows about both robot2 and stretch, robot2 will discover stretch (and vice versa) without needing to add them to `STATIC_PEERS` or relying on mDNS.
+
+If you primarily use `STATIC_PEERS`, you can set `PEER_EXCHANGE_ENABLED = False` to remove this extra discovery traffic entirely.
 
 ---
 
@@ -324,7 +328,7 @@ Every poll cycle, if a peer responds to `/state`, the robot also fetches that pe
 | `config.py` | All deployment-specific settings — **only file you need to edit** |
 | `state.py` | Shared mutable state (own_state, peers, peer_urls, log buffer) |
 | `server.py` | ROS2 subscriptions + FastAPI HTTP endpoints + mDNS advertisement |
-| `client.py` | mDNS discovery + concurrent peer polling + heartbeat ticker |
+| `client.py` | mDNS discovery + concurrent peer polling + optional peer exchange + heartbeat ticker |
 | `dashboard.py` | Rich terminal UI — panels, tables, formatters |
 | `main.py` | Wires all modules together, handles shutdown |
 

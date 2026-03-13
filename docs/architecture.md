@@ -16,6 +16,7 @@ Process (e.g. python3 main.py)
 |-- Thread: rclpy.spin(node)       - blocks processing ROS callbacks
 |-- Thread: uvicorn.Server.run()   - HTTP server, handles API requests
 |-- Thread: poll_peers()           - concurrent HTTP polling loop
+|-- Thread: exchange_peer_urls()   - optional peer exchange loop
 |-- Thread: _heartbeat_ticker()    - background timer
 `-- Main thread: Rich Live loop    - terminal dashboard (main.py only)
 ```
@@ -63,7 +64,7 @@ Populated at process start. Useful when the network environment is known or when
 Each robot advertises itself as `{ROBOT_ID}._robot._tcp.local.` on startup via `zeroconf.ServiceBrowser`. Any other robot or monitor on the same network segment will receive this broadcast and add the IP to `peer_urls`. Unreliable on WiFi networks with AP client isolation or multicast filtering.
 
 ### 3. Peer Exchange (`GET /peer_urls`)
-On each successful poll of a peer, the client also fetches that peer's `/peer_urls` endpoint. Any robot the peer knows about that is not yet locally known is added to `peer_urls`. This means robots can discover each other transitively through a mutual peer - if robot1 knows both robot2 and stretch, robot2 will discover stretch via robot1's `/peer_urls` response within one poll cycle.
+Optional. When `PEER_EXCHANGE_ENABLED` is `True`, the client runs a separate background loop that fetches `/peer_urls` from peers it is already reaching successfully every `PEER_EXCHANGE_INTERVAL` seconds. Any robot the peer knows about that is not yet locally known is added to `peer_urls`. This means robots can discover each other transitively through a mutual peer - if robot1 knows both robot2 and stretch, robot2 will discover stretch via robot1's `/peer_urls` response without adding it statically.
 
 **Priority / source of truth:** The last writer wins for any given `robot_id` key in `peer_urls`. In practice the URL for a given robot is stable so this is not a problem.
 
@@ -95,7 +96,7 @@ Separately, `last_api_query` records the most recent inbound request to the robo
 
 Each running process has its own in-memory `state.py`. There is **no shared memory between processes**. This is why `server.py` and `main.py` cannot run concurrently on the same robot - they are separate Python processes with separate `own_state` dicts. The server's `own_state` would be populated by ROS; the main.py instance would start with an empty one.
 
-The monitor has its own `state.py` (`monitor/state.py`) which stores `robots` (equivalent to `peers`) and `robot_urls` (equivalent to `peer_urls`), with the same locking pattern.
+The monitor has its own `state.py` (`monitor/state.py`) which stores `robots` (equivalent to `peers`) and `robot_urls` (equivalent to `peer_urls`), with the same locking pattern. The monitor does not perform peer exchange; it only polls `/state`.
 
 ---
 

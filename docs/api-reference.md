@@ -160,6 +160,7 @@ Returns an empty object `{}` if no peers have been discovered yet.
 
 **Notes:**
 - Includes robots discovered via mDNS, static config, and peer exchange.
+- If peer exchange is disabled in `config.py`, this endpoint still works for debugging but robots will not query it automatically.
 - Includes robots that have been discovered but never successfully polled (unlike `GET /peers`).
 - URLs are never removed from this dict at runtime — removal only happens on process restart.
 

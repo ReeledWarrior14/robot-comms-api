@@ -123,7 +123,9 @@ If two robots share the same `ROBOT_ID`, the second registration will fail or be
 
 ## Peer exchange not propagating - robot2 and stretch still can't see each other
 
-Peer exchange requires at least one robot to successfully poll another that knows about the missing peer. If robot1 knows both robot2 and stretch, robot2 should discover stretch within one poll cycle (<= `POLL_INTERVAL` seconds).
+Peer exchange requires `PEER_EXCHANGE_ENABLED = True` and at least one robot to successfully poll another that knows about the missing peer. If robot1 knows both robot2 and stretch, robot2 should discover stretch within one peer exchange cycle (<= `PEER_EXCHANGE_INTERVAL` seconds by default).
+
+If you are intentionally using only `STATIC_PEERS`, it is normal for peer exchange not to happen.
 
 **Verify robot1 knows both:**
 ```bash
@@ -139,10 +141,10 @@ curl http://<robot1-ip>:8000/peers
 
 If robot2 does not appear in robot1's `/peers`, robot2 cannot reach robot1 - fix that connection first.
 
-**Verify after one poll cycle:**
+**Verify after one peer exchange cycle:**
 ```bash
 curl http://<robot2-ip>:8000/peer_urls
-# After one successful poll of robot1, stretch1 should appear here
+# After one successful peer exchange cycle, stretch1 should appear here
 ```
 
 ---

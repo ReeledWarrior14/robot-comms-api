@@ -185,7 +185,7 @@ If the new robot exposes fields you want to see in `monitor/dashboard.py`, add c
 
 ## Changing Poll Rate or Liveness Thresholds
 
-Edit `POLL_INTERVAL` and `HEARTBEAT_TTL` in `config.py`. The liveness thresholds in `dashboard.py` and `monitor/dashboard.py` derive from `config.POLL_INTERVAL` and `config.HEARTBEAT_TTL` at runtime — you do not need to edit the dashboard code.
+Edit `POLL_INTERVAL` and `HEARTBEAT_TTL` in `config.py`. If you use peer exchange, you can also tune `PEER_EXCHANGE_INTERVAL` independently or disable peer exchange entirely with `PEER_EXCHANGE_ENABLED = False`. The liveness thresholds in `dashboard.py` and `monitor/dashboard.py` derive from `config.POLL_INTERVAL` and `config.HEARTBEAT_TTL` at runtime — you do not need to edit the dashboard code.
 
 | Goal | Change |
 |---|---|
@@ -193,6 +193,7 @@ Edit `POLL_INTERVAL` and `HEARTBEAT_TTL` in `config.py`. The liveness thresholds
 | More tolerance for brief network drops | Raise `HEARTBEAT_TTL` |
 | Longer "Degraded" window before Offline | Raise `HEARTBEAT_TTL` relative to `POLL_INTERVAL` |
 | Smaller "Online" window (stricter) | Lower `POLL_INTERVAL * 3` by lowering `POLL_INTERVAL` |
+| Reduce discovery traffic | Raise `PEER_EXCHANGE_INTERVAL` or set `PEER_EXCHANGE_ENABLED = False` |
 
 ---
 

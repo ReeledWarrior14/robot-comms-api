@@ -357,9 +357,9 @@ STATIC_PEERS = { "robot1": "http://127.0.0.1:8001" }
 STATIC_PEERS = { "robot1": "http://127.0.0.1:8001" }
 ```
 
-After one poll cycle, robot2 should query robot1's `/peer_urls`, discover stretch1, and add it. Verify:
+If `PEER_EXCHANGE_ENABLED = True`, after one peer exchange cycle robot2 should query robot1's `/peer_urls`, discover stretch1, and add it. Verify:
 ```bash
-# Wait a second, then:
+# Wait at least PEER_EXCHANGE_INTERVAL seconds, then:
 curl http://127.0.0.1:8002/peer_urls
 # Should now contain stretch1 even though it wasn't in config.STATIC_PEERS
 ```
