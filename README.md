@@ -246,6 +246,7 @@ Fields present on all robots:
 | `heading` | float \| null | Yaw in radians |
 | `battery_percentage` | float \| null | 0–100 |
 | `last_updated` | ISO 8601 \| null | Timestamp of last ROS callback |
+| `last_api_query` | ISO 8601 \| null | Timestamp of last inbound API request to this robot |
 | `heartbeat_ts` | float \| null | Unix timestamp, ticked every `POLL_INTERVAL` regardless of ROS |
 
 TurtleBot4 additional fields:
@@ -268,6 +269,8 @@ Stretch additional fields:
 ## How Liveness Works
 
 Each robot ticks `heartbeat_ts` (a Unix float) in its own state every `POLL_INTERVAL` seconds, independent of ROS. However, **`heartbeat_ts` is only used for local diagnostics** (visible in the robot's own dashboard panel). It is NOT used to determine peer status.
+
+Each robot also records `last_api_query` whenever its operational HTTP API is queried (`/state`, `/peers`, `/peers/{robot_id}`, `/peer_urls`, `/heartbeat`). In the robot dashboard, `last_updated` is shown as **Last ROS Callback** and `last_api_query` is shown as **Last API Query**.
 
 Peer status is derived from **`elapsed`** — the time since the last successful HTTP poll on the local machine's monotonic clock. This avoids clock skew errors: comparing a remote `time.time()` timestamp against a local `time.time()` can flap around thresholds when machines clocks differ by even 1–2 seconds.
 

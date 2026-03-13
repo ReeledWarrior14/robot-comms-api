@@ -63,6 +63,8 @@ fmt_float(s.get("linear_speed"), 3),
 
 > **Note:** Adding a column to the peers table means the column will appear for all peers, including those of a different robot type that don't publish the field. They will show `N/A` automatically because `fmt_float(None)` returns `"[dim]N/A[/dim]"`.
 
+The built-in dashboards already label `last_updated` as **Last ROS Callback**. If you add more timestamps, use labels that make the source explicit in the UI.
+
 ---
 
 ## Adding a New API Endpoint
@@ -123,7 +125,7 @@ Set `ROBOT_ID`, `NAMESPACE`, and `PORT`. Add `STATIC_PEERS` if needed. Remove an
 
 ### Step 3 — Edit `state.py`
 
-Replace the robot-type-specific fields in `own_state` with the fields relevant to the new robot. Keep all shared fields (`robot_id`, `namespace`, `x`, `y`, `heading`, `last_updated`, `heartbeat_ts`):
+Replace the robot-type-specific fields in `own_state` with the fields relevant to the new robot. Keep all shared fields (`robot_id`, `namespace`, `x`, `y`, `heading`, `last_updated`, `last_api_query`, `heartbeat_ts`):
 
 ```python
 own_state: dict = {
@@ -137,6 +139,7 @@ own_state: dict = {
     "is_armed":           None,    # True if motors are armed
     "battery_percentage": None,
     "last_updated":       None,
+    "last_api_query":     None,
     "heartbeat_ts":       None,
 }
 ```

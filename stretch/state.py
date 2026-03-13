@@ -29,6 +29,7 @@ own_state: dict = {
     },
     "joints":             {},      # joint_name -> {position, velocity, effort}
     "last_updated":       None,    # ISO 8601 timestamp
+    "last_api_query":     None,    # ISO 8601 timestamp of last inbound API hit
     "heartbeat_ts":       None,    # Unix float, ticked by client heartbeat thread
 }
 

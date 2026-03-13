@@ -26,6 +26,7 @@ Returns the complete current state of this robot.
   "is_docked":          false,        // bool; null if dock_status not yet received
   "battery_percentage": 87.3,         // 0–100; null if battery_state not yet received
   "last_updated":       "2026-03-08T14:23:01.456789+00:00",  // ISO 8601 UTC; null until first callback
+  "last_api_query":     "2026-03-08T14:23:03.000000+00:00",  // ISO 8601 UTC; null until first API hit
   "heartbeat_ts":       1741441381.2  // Unix float; null until heartbeat ticker starts
 }
 ```
@@ -55,6 +56,7 @@ Returns the complete current state of this robot.
     "joint_arm_l0": {"position": 0.11, "velocity": 0.0, "effort": 0.03}
   },
   "last_updated":       "2026-03-08T14:23:01.456789+00:00",
+  "last_api_query":     "2026-03-08T14:23:03.000000+00:00",
   "heartbeat_ts":       1741441381.2
 }
 ```
@@ -102,6 +104,7 @@ Returns the last known state of all peers this robot is currently polling, keyed
     "is_docked":          false,
     "battery_percentage": 54.0,
     "last_updated":       "2026-03-08T14:23:00.900000+00:00",
+    "last_api_query":     "2026-03-08T14:23:01.200000+00:00",
     "heartbeat_ts":       1741441380.9
   },
   "stretch1": {
@@ -185,6 +188,12 @@ Lightweight liveness check. Returns immediately without accessing any shared sta
 **Notes:**
 - The polling loop does **not** call this endpoint — liveness is derived from the `heartbeat_ts` field in `/state`.
 - Useful for external tooling, health checks, or quick manual checks: `curl http://10.40.118.220:8000/heartbeat`
+
+## Timestamp Semantics
+
+- `last_updated` means the last ROS callback time. In the dashboards this is labeled **Last ROS Callback**.
+- `last_api_query` means the last inbound request to the operational HTTP API. In the dashboards this is labeled **Last API Query**.
+- Requests to `/docs`, `/redoc`, and `/openapi.json` do not update `last_api_query`.
 
 ---
 

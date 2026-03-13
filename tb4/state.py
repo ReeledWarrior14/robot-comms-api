@@ -19,6 +19,7 @@ own_state: dict = {
     "is_docked":          None,   # True / False / None (unknown)
     "battery_percentage": None,   # 0.0 – 100.0 / None (unknown)
     "last_updated":       None,   # ISO 8601 timestamp
+    "last_api_query":     None,   # ISO 8601 timestamp of last inbound API hit
     "heartbeat_ts":       None,   # Unix float, ticked by client heartbeat thread
 }
 

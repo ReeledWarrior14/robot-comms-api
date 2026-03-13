@@ -52,6 +52,7 @@ Written by `server.py` (ROS callbacks), read by the FastAPI endpoints and the da
 | `joint_state` | `_joint_states_cb` | **Stretch only.** Raw latest `JointState` arrays (`name`, `position`, `velocity`, `effort`) and `header_stamp`. |
 | `joints` | `_joint_states_cb` | **Stretch only.** Keyed per-joint lookup map with `position`, `velocity`, `effort`. |
 | `last_updated` | all callbacks | ISO 8601 UTC string, updated on every ROS callback. |
+| `last_api_query` | FastAPI middleware | ISO 8601 UTC string, updated on inbound requests to the operational API endpoints. |
 | `heartbeat_ts` | `_heartbeat_ticker` | Unix float (`time.time()`). Updated every `POLL_INTERVAL` regardless of ROS activity. Used as a process-alive indicator. |
 
 ### `peers: dict[str, dict]`
@@ -103,6 +104,8 @@ All endpoints are synchronous FastAPI route functions. They run in uvicorn's thr
 | `GET /peers/{robot_id}` | single peer's state dict, or `{"error": "..."}` | Convenience endpoint for querying a specific peer. |
 | `GET /peer_urls` | `{ robot_id: url }` | This robot's known peer URLs. Fetched by other robots during peer exchange to discover robots they don't yet know about. |
 | `GET /heartbeat` | `{ robot_id, alive, timestamp }` | Lightweight liveness check. Not called by the polling loop (redundant since `/state` already returns `heartbeat_ts`), but useful for external tooling or debugging. |
+
+An app-level HTTP middleware updates `state.own_state["last_api_query"]` for operational inbound API requests. It tracks `/state`, `/peers`, `/peers/{robot_id}`, `/peer_urls`, and `/heartbeat`, while excluding docs/openapi routes.
 
 ### `class RobotStateListener(Node)`
 
@@ -195,7 +198,7 @@ Converts `elapsed` (seconds since last successful poll) to a coloured status str
 
 ### `build_own_panel() -> Panel`
 
-Reads `state.own_state` and renders a Rich `Table` inside a green `Panel`. TB4 shows `is_docked`; Stretch shows `battery_voltage`, `battery_current`, and `is_runstopped`.
+Reads `state.own_state` and renders a Rich `Table` inside a green `Panel`. TB4 shows `is_docked`; Stretch shows `battery_voltage`, `battery_current`, and `is_runstopped`. The panel labels `last_updated` as **Last ROS Callback** and shows `last_api_query` as **Last API Query**.
 
 ### `build_peers_table() -> Table`
 

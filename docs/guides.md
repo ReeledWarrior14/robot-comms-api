@@ -241,6 +241,7 @@ own_state = {
     "battery_percentage": None,
     "is_docked":          None,   # TB4 fields
     "last_updated":       None,
+    "last_api_query":     None,
     "heartbeat_ts":       None,
 }
 
